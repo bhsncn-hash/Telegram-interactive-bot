@@ -1,4 +1,3 @@
-```python
 import os
 import random
 import time
@@ -564,4 +563,3 @@ if __name__ == "__main__":
     )
     application.add_error_handler(error_handler)
     application.run_polling()
-```
