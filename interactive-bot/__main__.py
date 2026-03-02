@@ -1,3 +1,4 @@
+```python
 import os
 import random
 import time
@@ -37,18 +38,18 @@ from . import (
 )
 from .utils import delete_message_later
 
-# 创建表（使用的sqlite，是无法轻易alter表的。如果改动，需要删除重建。无法merge）
+# Create tables (using SQLite, which cannot easily alter tables. If modified, deletion and recreation is required. Cannot merge)
 Base.metadata.create_all(bind=engine)
 db = SessionMaker()
 
 
-# 延时发送媒体组消息的回调
+# Callback for delayed sending of media group messages
 async def _send_media_group_later(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     media_group_id = job.data
     _, from_chat_id, target_id, dir = job.name.split("_")
 
-    # 数据库内查找对应的媒体组消息。
+    # Find the corresponding media group messages in the database
     media_group_msgs = (
         db.query(MediaGroupMesssage)
         .filter(
@@ -59,7 +60,7 @@ async def _send_media_group_later(context: ContextTypes.DEFAULT_TYPE):
     )
     chat = await context.bot.get_chat(target_id)
     if dir == "u2a":
-        # 发送给群组
+        # Send to group
         u = db.query(User).filter(User.user_id == from_chat_id).first()
         message_thread_id = u.message_thread_id
         sents = await chat.send_copies(
@@ -76,7 +77,7 @@ async def _send_media_group_later(context: ContextTypes.DEFAULT_TYPE):
             db.add(msg_map)
             db.commit()
     else:
-        # 发送给用户
+        # Send to user
         sents = await chat.send_copies(
             from_chat_id, [m.message_id for m in media_group_msgs]
         )
@@ -90,7 +91,7 @@ async def _send_media_group_later(context: ContextTypes.DEFAULT_TYPE):
             db.commit()
 
 
-# 延时发送媒体组消息
+# Delayed sending of media group messages
 async def send_media_group_later(
     delay: float,
     chat_id,
@@ -126,14 +127,14 @@ async def send_contact_card(
     buttons.append(
         [
             InlineKeyboardButton(
-                f"{'🏆 高级会员' if user.is_premium else '✈️ 普通会员' }",
+                f"{'🏆 Premium Member' if user.is_premium else '✈️ Regular Member' }",
                 url=f"https://github.com/MiHaKun/Telegram-interactive-bot",
             )
         ]
     )
     if user.username:
         buttons.append(
-            [InlineKeyboardButton("👤 直接联络", url=f"https://t.me/{user.username}")]
+            [InlineKeyboardButton("👤 Direct Contact", url=f"https://t.me/{user.username}")]
         )
 
     user_photo = await context.bot.get_user_profile_photos(user.id)
@@ -143,7 +144,7 @@ async def send_contact_card(
         await context.bot.send_photo(
             chat_id,
             photo=pic,
-            caption=f"👤 {mention_html(user.id, user.first_name)}\n\n📱 {user.id}\n\n🔗 @{user.username if user.username else '无'}",
+            caption=f"👤 {mention_html(user.id, user.first_name)}\n\n📱 {user.id}\n\n🔗 @{user.username if user.username else 'None'}",
             message_thread_id=message_thread_id,
             reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode="HTML",
@@ -172,15 +173,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"admin group error {e}")
             await update.message.reply_html(
-                f"⚠️⚠️后台管理群组设置错误，请检查配置。⚠️⚠️\n你需要确保已经将机器人 @{context.bot.username} 邀请入管理群组并且给与了管理员权限。\n错误细节：{e}\n"
+                f"⚠️⚠️ Backend admin group configuration error, please check settings. ⚠️⚠️\nYou need to ensure that the bot @{context.bot.username} has been invited to the admin group and granted administrator privileges.\nError details: {e}\n"
             )
             return ConversationHandler.END
         await update.message.reply_html(
-            f"你好管理员 {user.first_name}({user.id})\n\n欢迎使用 {app_name} 机器人。\n\n 目前你的配置完全正确。可以在群组 <b> {bg.title} </b> 中使用机器人。"
+            f"Hello Administrator {user.first_name}({user.id})\n\nWelcome to the {app_name} bot.\n\nYour configuration is correct. You can use the bot in the group <b> {bg.title} </b>."
         )
     else:
         await update.message.reply_html(
-            f"{mention_html(user.id, user.full_name)} 同学：\n\n{welcome_message}"
+            f"{mention_html(user.id, user.full_name)}:\n\n{welcome_message}"
         )
 
 
@@ -188,8 +189,8 @@ async def check_human(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if context.user_data.get("is_human", False) == False:
         if context.user_data.get("is_human_error_time", 0) > time.time() - 120:
-            # 2分钟内禁言
-            await update.message.reply_html("你已经被禁言,请稍后再尝试。")
+            # Muted for 2 minutes
+            await update.message.reply_html("You have been muted, please try again later.")
             return False
         file_name = random.choice(os.listdir("./assets/imgs"))
         code = file_name.replace("image_", "").replace(".png", "")
@@ -200,7 +201,7 @@ async def check_human(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         photo = context.bot_data.get(f"image|{code}")
         if not photo:
-            # 没发送过，就用内置图片。
+            # Not sent before, use built-in image
             photo = file
         buttons = [
             InlineKeyboardButton(x, callback_data=f"vcode_{x}_{user.id}") for x in codes
@@ -208,11 +209,11 @@ async def check_human(update: Update, context: ContextTypes.DEFAULT_TYPE):
         button_matrix = [buttons[i : i + 4] for i in range(0, len(buttons), 4)]
         sent = await update.message.reply_photo(
             photo,
-            f"{mention_html(user.id, user.first_name)}请选择图片中的文字。回答错误将无法联系客服。",
+            f"{mention_html(user.id, user.first_name)} Please select the text shown in the image. Incorrect answers will prevent you from contacting support.",
             reply_markup=InlineKeyboardMarkup(button_matrix),
             parse_mode="HTML",
         )
-        # 存下已经发送过的图片
+        # Store the sent image
         biggest_photo = sorted(sent.photo, key=lambda x: x.file_size, reverse=True)[0]
         context.bot_data[f"image|{code}"] = biggest_photo.file_id
         context.user_data["vcode"] = code
@@ -227,18 +228,18 @@ async def callback_query_vcode(update: Update, context: ContextTypes.DEFAULT_TYP
     code = query.data.split("_")[1]
     user_id = query.data.split("_")[2]
     if user_id == str(user.id):
-        # 是正确的人点击
+        # Correct person clicked
         if code == context.user_data.get("vcode"):
-            # 点击合法
-            await query.answer(f"正确，欢迎。")
+            # Valid click
+            await query.answer(f"Correct, welcome.")
             sent = await context.bot.send_message(
                 update.effective_chat.id,
-                f"{mention_html(user.id, user.first_name)} , 欢迎。",
+                f"{mention_html(user.id, user.first_name)}, welcome.",
                 parse_mode="HTML",
             )
             context.user_data["is_human"] = True
         else:
-            await query.answer(f"~错误~，禁言2分钟")
+            await query.answer(f"~Incorrect~, muted for 2 minutes")
             context.user_data["is_human_error_time"] = time.time()
     await query.message.delete()
 
@@ -249,7 +250,7 @@ async def forwarding_message_u2a(update: Update, context: ContextTypes.DEFAULT_T
             return
     if message_interval:
         if context.user_data.get("last_message_time", 0) > time.time() - message_interval:
-            await update.message.reply_html("请不要频繁发送消息。")
+            await update.message.reply_html("Please do not send messages too frequently.")
             return
         context.user_data["last_message_time"] = time.time()
     user = update.effective_user
@@ -266,7 +267,7 @@ async def forwarding_message_u2a(update: Update, context: ContextTypes.DEFAULT_T
     ):
         if f.status == "closed":
             await update.message.reply_html(
-                "客服已经关闭对话。如需联系，请利用其他途径联络客服回复和你的对话。"
+                "The support agent has closed the conversation. If you need to contact them, please use other means to ask support to reopen the conversation with you."
             )
             return
     if not message_thread_id:
@@ -278,7 +279,7 @@ async def forwarding_message_u2a(update: Update, context: ContextTypes.DEFAULT_T
         u.message_thread_id = message_thread_id
         await context.bot.send_message(
             chat_id,
-            f"新的用户 {mention_html(user.id, user.full_name)} 开始了一个新的会话。",
+            f"New user {mention_html(user.id, user.full_name)} has started a new conversation.",
             message_thread_id=message_thread_id,
             parse_mode="HTML",
         )
@@ -286,10 +287,10 @@ async def forwarding_message_u2a(update: Update, context: ContextTypes.DEFAULT_T
         db.add(u)
         db.commit()
 
-    # 构筑下发送参数
+    # Build send parameters
     params = {"message_thread_id": message_thread_id}
     if update.message.reply_to_message:
-        # 用户引用了一条消息。我们需要找到这条消息在群组中的id
+        # User quoted a message. We need to find the message ID in the group
         reply_in_user_chat = update.message.reply_to_message.message_id
         if (
             msg_map := db.query(MessageMap)
@@ -335,18 +336,18 @@ async def forwarding_message_u2a(update: Update, context: ContextTypes.DEFAULT_T
     except BadRequest as e:
         if is_delete_topic_as_ban_forever:
             await update.message.reply_html(
-                f"发送失败，你的对话已经被客服删除。请联系客服重新打开对话。"
+                f"Send failed, your conversation has been deleted by support. Please contact support to reopen the conversation."
             )
         else:
             u.message_thread_id = 0
             db.add(u)
             db.commit()
             await update.message.reply_html(
-                f"发送失败，你的对话已经被客服删除。请再发送一条消息用来激活对话。"
+                f"Send failed, your conversation has been deleted by support. Please send another message to reactivate the conversation."
             )
     except Exception as e:
         await update.message.reply_html(
-            f"发送失败: {e}\n"
+            f"Send failed: {e}\n"
         )
 
 
@@ -371,7 +372,7 @@ async def forwarding_message_a2u(update: Update, context: ContextTypes.DEFAULT_T
         return
     if update.message.forum_topic_closed:
         await context.bot.send_message(
-            user_id, "对话已经结束。对方已经关闭了对话。你的留言将被忽略。"
+            user_id, "The conversation has ended. The other party has closed the conversation. Your messages will be ignored."
         )
         if (
             f := db.query(FormnStatus)
@@ -383,7 +384,7 @@ async def forwarding_message_a2u(update: Update, context: ContextTypes.DEFAULT_T
             db.commit()
         return
     if update.message.forum_topic_reopened:
-        await context.bot.send_message(user_id, "对方重新打开了对话。可以继续对话了。")
+        await context.bot.send_message(user_id, "The other party has reopened the conversation. You can continue chatting now.")
         if (
             f := db.query(FormnStatus)
             .filter(FormnStatus.message_thread_id == update.message.message_thread_id)
@@ -400,14 +401,14 @@ async def forwarding_message_a2u(update: Update, context: ContextTypes.DEFAULT_T
     ):
         if f.status == "closed":
             await update.message.reply_html(
-                "对话已经结束。希望和对方联系，需要打开对话。"
+                "The conversation has ended. To contact the other party, you need to reopen the conversation."
             )
             return
     chat_id = user_id
-    # 构筑下发送参数
+    # Build send parameters
     params = {}
     if update.message.reply_to_message:
-        # 群组中，客服回复了一条消息。我们需要找到这条消息在用户中的id
+        # In the group, support replied to a message. We need to find the message ID in the user chat
         reply_in_admin = update.message.reply_to_message.message_id
         if (
             msg_map := db.query(MessageMap)
@@ -456,14 +457,14 @@ async def forwarding_message_a2u(update: Update, context: ContextTypes.DEFAULT_T
 
     except Exception as e:
         await update.message.reply_html(
-            f"发送失败: {e}\n"
+            f"Send failed: {e}\n"
         )
 
 
 async def clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not user.id in admin_user_ids:
-        await update.message.reply_html("你没有权限执行此操作。")
+        await update.message.reply_html("You do not have permission to perform this operation.")
         return
     await context.bot.delete_forum_topic(
         update.effective_chat.id, update.message.message_thread_id
@@ -501,12 +502,12 @@ async def _broadcast(context: ContextTypes.DEFAULT_TYPE):
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if not user.id in admin_user_ids:
-        await update.message.reply_html("你没有权限执行此操作。")
+        await update.message.reply_html("You do not have permission to perform this operation.")
         return
 
     if not update.message.reply_to_message:
         await update.message.reply_html(
-            "这条指令需要回复一条消息，被回复的消息将被广播。"
+            "This command requires replying to a message. The replied message will be broadcast."
         )
         return
 
@@ -519,7 +520,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def error_in_send_media_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_html(
-        "错误的消息类型。退出发送媒体组。后续对话将直接转发。"
+        "Invalid message type. Exiting media group send. Subsequent messages will be forwarded directly."
     )
     return ConversationHandler.END
 
@@ -563,3 +564,4 @@ if __name__ == "__main__":
     )
     application.add_error_handler(error_handler)
     application.run_polling()
+```
